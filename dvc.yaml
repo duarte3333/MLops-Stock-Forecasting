@@ -1,0 +1,24 @@
+stages:
+  download:
+    cmd: python -m mlops_stock.data.download_data
+    deps:
+      - mlops_stock/data/download_data.py
+    outs:
+      - data/raw/
+
+  features:
+    cmd: python -m mlops_stock.features.build_features
+    deps:
+      - data/raw/
+      - mlops_stock/features/build_features.py
+    outs:
+      - data/processed/
+
+  train:
+    cmd: python -m mlops_stock.models.train
+    deps:
+      - data/processed/
+      - mlops_stock/models/train.py
+    outs:
+      - models/
+

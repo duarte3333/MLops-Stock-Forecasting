@@ -13,7 +13,7 @@ logger = setup_logger()
 
 
 def train_model(features_path: str = "data/processed/features.csv", model_path: str = "models/baseline_model.pkl",
-    test_size: float = 0.2, features_list: list = None, n_estimators: int = 1000, early_stopping_rounds: int = 50,
+    test_size: float = 0.2, features_list: list = None, n_estimators: int = 250, early_stopping_rounds: int = 50,
     learning_rate: float = 0.01) -> dict:
     logger.info(f"Loading features from {features_path}")
     
