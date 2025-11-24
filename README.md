@@ -110,3 +110,14 @@ dvc stage list
 # Show pipeline graph
 dvc dag
 ```
+## 3. Docker
+
+Build docker image:
+```
+docker build -t mlops-stock:latest .
+```
+
+Test training inside docker:
+```
+docker run mlops-stock:latest python mlops_stock/models/train.py
+```

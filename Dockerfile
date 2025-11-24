@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements first (for better Docker layer caching)
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies during build stage
+RUN pip install --no-cache-dir -r requirements.txt 
 
 # Copy the entire project
 COPY . .
@@ -25,4 +25,5 @@ RUN mkdir -p data/raw data/processed models logs
 ENV PYTHONPATH=/app
 
 # Default command (can be overridden)
-CMD ["python", "-m", "mlops_stock.models.train"]
+CMD ["python", "-m", "mlops_stock.models.train"] 
+# To start the container with the training process
