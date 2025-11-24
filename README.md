@@ -121,3 +121,33 @@ Test training inside docker:
 ```
 docker run mlops-stock:latest python mlops_stock/models/train.py
 ```
+
+## 4. FastAPI 
+
+### 1. Check if server is running
+curl http://localhost:8000/
+
+### 2. Health check
+curl http://localhost:8000/health
+
+### 3. Get prediction (using latest features)
+curl http://localhost:8000/predict
+
+### 4. Custom prediction
+curl -X POST "http://localhost:8000/predict/custom" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "features": [150.0, 0.01, 149.5, 149.0, 148.5, 55.0, 60.0]
+  }'
+### Run API in container
+docker run -p 8000:8000 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/models:/app/models \
+  -v $(pwd)/logs:/app/logs \
+  mlops-stock:latest python -m mlops_stock.serve.app
+
+  Understanding the endpoints
+GET / — API info
+GET /health — Health check (model loaded, files exist)
+GET /predict — Predict using the latest features from data/processed/features.csv
+POST /predict/custom — Predict with custom feature values
