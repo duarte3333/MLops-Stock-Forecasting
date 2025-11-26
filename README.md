@@ -151,3 +151,22 @@ GET / — API info
 GET /health — Health check (model loaded, files exist)
 GET /predict — Predict using the latest features from data/processed/features.csv
 POST /predict/custom — Predict with custom feature values
+
+1. User sends: GET http://localhost:8000/predict
+                    ↓
+2. FastAPI receives request
+                    ↓
+3. Calls predict_next_day_price() function
+                    ↓
+4. Checks: Is _model loaded? 
+   - If NO → Load from disk
+   - If YES → Use cached model
+                    ↓
+5. Calls predict_next_day() function:
+   - Reads data/processed/features.csv
+   - Gets last row (most recent data)
+   - Extracts: [Close, Return, MA5, MA10, MA30, RSI, STOCH_D]
+                    ↓
+6. Model.predict([features]) → Returns price
+                    ↓
+7. Returns JSON: {"prediction": 152.34, "message": "..."}
