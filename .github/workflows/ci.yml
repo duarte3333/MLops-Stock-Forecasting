@@ -22,10 +22,21 @@ jobs:
       with:
         context: .
         push: false
-        load: true  # ← ADD THIS: Load image into local Docker daemon
+        load: true
         tags: mlops-stock:test
         cache-from: type=gha
         cache-to: type=gha,mode=max
+    
+    - name: Run linting (black)
+      run: |
+        docker run --rm mlops-stock:test \
+          black --check mlops_stock/ tests/
+    
+    - name: Run linting (flake8)
+      continue-on-error: true
+      run: |
+        docker run --rm mlops-stock:test \
+          flake8 mlops_stock/ tests/ --max-line-length=100 --exclude=__pycache__,*.pyc --ignore=E501,W503
     
     - name: Run unit tests
       run: |

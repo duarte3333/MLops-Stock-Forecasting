@@ -15,6 +15,9 @@ COPY requirements.txt .
 # Install Python dependencies during build stage
 RUN pip install --no-cache-dir -r requirements.txt 
 
+# Install linting tools
+RUN pip install --no-cache-dir black flake8
+
 # Copy the entire project
 COPY . .
 
