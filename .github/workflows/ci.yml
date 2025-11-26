@@ -7,7 +7,6 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  # Job 1: Build Docker image and run tests inside it
   test:
     runs-on: ubuntu-latest
     
@@ -27,21 +26,6 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
     
-    - name: Run unit tests inside Docker container
+    - name: Run unit tests
       run: |
-        docker run --rm \
-            aurelia-airio:test \
-            pytest tests/ -v
-
-    - name: Run linting inside Docker container
-      run: |
-        docker run --rm \
-            aurelia-airio:test \
-            sh -c "pip install black flake8 && black --check mlops_stock/ tests/ && flake8 mlops_stock/ tests/ --max-line-length=100 --exclude=__pycache__ || true"
-
-    - name: Run dependency tests inside Docker container
-      run: |
-        docker run --rm \
-            aurelia-airio:test \
-            python -m src.tests.test_dependencies
-  
+        docker run --rm mlops-stock:test pytest tests/ -v

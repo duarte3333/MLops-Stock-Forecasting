@@ -16,7 +16,6 @@ __pycache__/
 *.log
 *.txt
 *.json
-*.yml
 *.html
 *.css
 *.js
