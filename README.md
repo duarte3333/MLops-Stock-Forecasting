@@ -170,3 +170,8 @@ POST /predict/custom — Predict with custom feature values
 6. Model.predict([features]) → Returns price
                     ↓
 7. Returns JSON: {"prediction": 152.34, "message": "..."}
+
+## 5. Format liting
+
+pip install black
+black mlops_stock/ tests/
