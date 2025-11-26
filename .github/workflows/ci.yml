@@ -1,0 +1,47 @@
+name: MLOps Pipeline CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Job 1: Build Docker image and run tests inside it
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Build Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: false
+        tags: mlops-stock:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Run unit tests inside Docker container
+      run: |
+        docker run --rm \
+            aurelia-airio:test \
+            pytest tests/ -v
+
+    - name: Run linting inside Docker container
+      run: |
+        docker run --rm \
+            aurelia-airio:test \
+            sh -c "pip install black flake8 && black --check mlops_stock/ tests/ && flake8 mlops_stock/ tests/ --max-line-length=100 --exclude=__pycache__ || true"
+
+    - name: Run dependency tests inside Docker container
+      run: |
+        docker run --rm \
+            aurelia-airio:test \
+            python -m src.tests.test_dependencies
+  
