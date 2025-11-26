@@ -1,8 +1,8 @@
 # MLOps Stock Forecasting
 
-A production-ready MLOps pipeline for stock price forecasting using XGBoost, featuring data versioning with DVC, modular code structure, and comprehensive testing.
+A production-ready MLOps pipeline for stock price forecasting using XGBoost, featuring data versioning with DVC, Docker containerization, CI/CD with GitHub Actions, and a FastAPI inference service.
 
-### 1. Installation
+## 1. Installation
 
 ```bash
 # Clone the repository
@@ -11,7 +11,7 @@ cd MLops-Stock-Forecasting
 
 # Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -20,9 +20,9 @@ pip install -r requirements.txt
 dvc init
 ```
 
-### 2. Run the Pipeline
+## 2. Run the Pipeline
 
-#### Option A: Using Makefile (Recommended)
+#### Option A: Using Makefile
 
 ```bash
 # Run the entire pipeline
@@ -75,7 +75,7 @@ python -m mlops_stock.models.train
 python -m mlops_stock.models.predict
 ```
 
-## Unit Testing
+### Unit Testing
 
 Run the test suite:
 
@@ -91,87 +91,138 @@ pytest tests/test_features.py -v
 pytest tests/test_models.py -v
 ```
 
-## DVC Workflow
-
-This project uses DVC for data and model versioning. See [DVC_SETUP.md](DVC_SETUP.md) for detailed information.
-
-### Basic DVC Commands
-
-```bash
-# Check what changed
-dvc status
-
-# Run the pipeline
-dvc repro
-
-# View pipeline stages
-dvc stage list
-
-# Show pipeline graph
-dvc dag
-```
 ## 3. Docker
 
-Build docker image:
-```
+```bash
+# Build Image
 docker build -t mlops-stock:latest .
-```
 
-Test training inside docker:
-```
-docker run mlops-stock:latest python mlops_stock/models/train.py
+# Download data
+docker run --rm -v $(pwd)/data:/app/data mlops-stock:latest \
+  python -m mlops_stock.data.download_data
+
+# Build features
+docker run --rm -v $(pwd)/data:/app/data mlops-stock:latest \
+  python -m mlops_stock.features.build_features
+
+# Train model
+docker run --rm \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/models:/app/models \
+  mlops-stock:latest \
+  python -m mlops_stock.models.train
 ```
 
 ## 4. FastAPI 
 
-### 1. Check if server is running
-curl http://localhost:8000/
+```bash
+# Local
+python -m mlops_stock.serve.app
 
-### 2. Health check
-curl http://localhost:8000/health
-
-### 3. Get prediction (using latest features)
-curl http://localhost:8000/predict
-
-### 4. Custom prediction
-curl -X POST "http://localhost:8000/predict/custom" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "features": [150.0, 0.01, 149.5, 149.0, 148.5, 55.0, 60.0]
-  }'
-### Run API in container
+# Or with Docker
 docker run -p 8000:8000 \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/models:/app/models \
-  -v $(pwd)/logs:/app/logs \
-  mlops-stock:latest python -m mlops_stock.serve.app
+  mlops-stock:latest \
+  python -m mlops_stock.serve.app### API Endpoints
+```
 
-  Understanding the endpoints
-GET / — API info
-GET /health — Health check (model loaded, files exist)
-GET /predict — Predict using the latest features from data/processed/features.csv
-POST /predict/custom — Predict with custom feature values
+- `GET /` - API information
+- `GET /health` - Health check (model loaded, files exist)
+- `GET /predict` - Predict next day price using latest features
+- `POST /predict/custom` - Predict with custom feature values
 
-1. User sends: GET http://localhost:8000/predict
-                    ↓
-2. FastAPI receives request
-                    ↓
-3. Calls predict_next_day_price() function
-                    ↓
-4. Checks: Is _model loaded? 
-   - If NO → Load from disk
-   - If YES → Use cached model
-                    ↓
-5. Calls predict_next_day() function:
-   - Reads data/processed/features.csv
-   - Gets last row (most recent data)
-   - Extracts: [Close, Return, MA5, MA10, MA30, RSI, STOCH_D]
-                    ↓
-6. Model.predict([features]) → Returns price
-                    ↓
-7. Returns JSON: {"prediction": 152.34, "message": "..."}
+### Example Usage
 
-## 5. Format liting
+```bash
+# Health check
+curl http://localhost:8000/health
 
-pip install black
+# Get prediction
+curl http://localhost:8000/predict
+
+# Custom prediction
+curl -X POST "http://localhost:8000/predict/custom" \
+  -H "Content-Type: application/json" \
+  -d '{"features": [150.0, 0.01, 149.5, 149.0, 148.5, 55.0, 60.0]}'
+```
+
+### Interactive API Documentation
+
+Once running, visit:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+## 5. Using GitHub Container Registry
+
+The Docker image is automatically built and pushed to GHCR on every push to main.
+
+```bash
+#Login to GHRC
+docker login ghcr.io -u <username> -p <token>
+
+# Pull the image with Github Container Registry
+docker pull ghcr.io/duarte3333/mlops-stock:latest
+
+# Run tests
+docker run --rm ghcr.io/duarte3333/mlops-stock:latest pytest tests/ -v
+
+export IMAGE=ghcr.io/duarte3333/mlops-stock:latest
+
+# Step 1: Download data
+docker run --rm \
+  -v $(pwd)/data:/app/data \
+  $IMAGE \
+  python -m mlops_stock.data.download_data
+
+# Step 2: Build features
+docker run --rm \
+  -v $(pwd)/data:/app/data \
+  $IMAGE \
+  python -m mlops_stock.features.build_features
+
+# Step 3: Train model
+docker run --rm \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/models:/app/models \
+  $IMAGE \
+  python -m mlops_stock.models.train
+
+# Step 4: Run the API
+echo "6. Running the API..."
+docker run -d -p 8000:8000 \
+  --name mlops-api \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/models:/app/models \
+  $IMAGE \
+  python -m mlops_stock.serve.app
+
+```
+### Access the API
+
+Once running, visit:
+- API: http://localhost:8000
+- Docs: http://localhost:8000/docs
+- Health: http://localhost:8000/health
+
+
+## 6. Format liting
+
+```bash
+#Automatically reformats your Python code to a strict, consistent style (PEP 8-like but with its own rules).
+pip install black 
 black mlops_stock/ tests/
+
+# Check syntax errors, PEP 8 style violations, Undefined variables, Unused imports, Complexity issues (via plugins)
+pip install flake8
+flake8 mlops_stock/ tests/
+```
+
+## 7. CI/CD
+
+The project includes GitHub Actions workflows that:
+
+- Run tests on every push/PR
+- Build Docker images
+- Push images to GitHub Container Registry (GHCR)
+- Check code formatting with black and flake8

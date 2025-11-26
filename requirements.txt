@@ -10,3 +10,4 @@ pytest
 dvc
 fastapi
 uvicorn[standard]
+black
