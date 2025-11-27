@@ -20,5 +20,5 @@ __pycache__/
 *.js
 *.xml
 /models
-
+logs/*
 data/

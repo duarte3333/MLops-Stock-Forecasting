@@ -131,11 +131,20 @@ The pipeline supports storing data and models in AWS S3 for scalable, cloud-base
    mkdir -p ~/.aws/credentials
    touch ~/.aws/config
    ```
+
 3. **S3 Buckets** created:
    ```bash
    aws s3 mb s3://mlops-stock-raw --region us-east-1
    aws s3 mb s3://mlops-stock-features --region us-east-1
    aws s3 mb s3://mlops-stock-models --region us-east-1
+   ```
+4. **Add S3 as remote storage**
+   ```bash
+   pip install dvc[s3]
+   #create a s3 bucket and IAM user
+   dvc remote add -d myremote s3://mlops-stock-raw --region us-east-1
+   dvc remote list
+   dvc push
    ```
 ### Environment Variables
 
