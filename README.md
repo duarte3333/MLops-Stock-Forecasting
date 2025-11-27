@@ -10,6 +10,8 @@ A production-ready machine learning pipeline for predicting stock prices using X
 - **Containerization**: Docker for consistent deployments
 - **CI/CD**: GitHub Actions for automated testing and building
 - **Registry**: GitHub Container Registry (GHCR) for image distribution
+- **Cloud Training**: AWS SageMaker for scalable model training
+- **Container Registry**: AWS ECR for Docker image storage
 
 ## 1. Installation
 
@@ -273,8 +275,47 @@ Once running, visit:
 - Docs: http://localhost:8000/docs
 - Health: http://localhost:8000/health
 
+## 7. AWS SageMaker Training
 
-## 7. Code Formatting
+Allowed the model to be trained on AWS SageMaker using Docker images from ECR.
+
+```bash
+# 1. Create ECR repo
+export AWS_REGION=us-east-1
+export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export ECR_REPO_NAME=mlops-stock-training
+
+aws ecr create-repository --repository-name $ECR_REPO_NAME --region $AWS_REGION
+
+# 2. Authenticate and push image
+aws ecr get-login-password --region $AWS_REGION | \
+    docker login --username AWS --password-stdin \
+    $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+docker build -t mlops-stock:latest .
+docker tag mlops-stock:latest \
+    $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:latest
+docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:latest
+
+# 3. Submit training job
+bash scripts/sagemaker-training.sh
+
+# 4. Monitor job
+bash scripts/monitor-sagemaker.sh
+```
+
+### Setup SageMaker Role
+
+Create IAM role in AWS Console:
+- Trusted entity: AWS service → SageMaker
+- Attach policies: `AmazonSageMakerFullAccess`, `AmazonS3FullAccess`, `AmazonEC2ContainerRegistryFullAccess`
+- Role name: `SageMakerExecutionRole`
+
+### Model Output
+
+Models are saved to: `s3://mlops-stock-models/sagemaker-output/<job-name>/output/model.tar.gz`
+
+## 8. Code Formatting
 
 ```bash
 # Automatically reformats your Python code to a strict, consistent style
@@ -286,7 +327,7 @@ pip install flake8
 flake8 mlops_stock/ tests/ --max-line-length=100 --exclude=__pycache__
 ```
 
-## 8. CI/CD
+## 9. CI/CD
 
 The project includes GitHub Actions workflows that:
 
@@ -297,7 +338,7 @@ The project includes GitHub Actions workflows that:
 
 View workflows in `.github/workflows/ci.yml`
 
-## 9. DVC Workflow
+## 10. DVC Workflow
 
 This project uses DVC for data and model versioning with S3 remote storage.
 
@@ -335,3 +376,4 @@ dvc stage list
 # Show pipeline graph
 dvc dag
 ```
+
