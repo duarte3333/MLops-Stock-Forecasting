@@ -11,3 +11,5 @@ dvc
 fastapi
 uvicorn[standard]
 black
+flake8
+dvc[s3]

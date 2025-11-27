@@ -8,7 +8,7 @@ A production-ready machine learning pipeline for predicting stock prices using X
 - **Data Versioning**: DVC for data and model tracking
 - **Containerization**: Docker for consistent deployments
 - **CI/CD**: GitHub Actions for automated testing and building
-- **Registry**: GitHub Containe r Registry (GHCR) for image distribution
+- **Registry**: GitHub Container Registry (GHCR) for image distribution
 
 ## 1. Installation
 

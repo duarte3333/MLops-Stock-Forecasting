@@ -9,7 +9,6 @@ __pycache__/
 .env.development
 .env.test
 .env.production
-
 # Ignore all files with the extension .pkl, .csv, .log, .txt, .json, .yaml, .yml, .html, .css, .js, .xml
 *.pkl
 *.csv
