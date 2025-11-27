@@ -1,5 +1,6 @@
-"""Train stock forecasting model"""
+"""Train stock forecasting model with optional S3 support"""
 
+import os
 import pandas as pd
 import pickle
 import xgboost as xgb
@@ -10,6 +11,23 @@ import numpy as np
 from mlops_stock.utils.logger import setup_logger
 
 logger = setup_logger()
+
+# S3 configuration from environment variables
+USE_S3 = os.getenv("USE_S3", "false").lower() == "true"
+S3_BUCKET_FEATURES = os.getenv("S3_BUCKET_FEATURES", "mlops-stock-features")
+S3_BUCKET_MODELS = os.getenv("S3_BUCKET_MODELS", "mlops-stock-models")
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+
+# Initialize S3 client if using S3
+s3_client = None
+if USE_S3:
+    try:
+        import boto3
+        s3_client = boto3.client("s3", region_name=AWS_REGION)
+        logger.info(f"S3 enabled. Buckets: {S3_BUCKET_FEATURES}, {S3_BUCKET_MODELS}")
+    except ImportError:
+        logger.warning("boto3 not installed. S3 functionality disabled.")
+        USE_S3 = False
 
 
 def train_model(
@@ -23,8 +41,20 @@ def train_model(
 ) -> dict:
     logger.info(f"Loading features from {features_path}")
 
-    # Load features
-    df = pd.read_csv(features_path, index_col=0, parse_dates=True)
+    # Load features (from local or S3)
+    if USE_S3 and s3_client:
+        try:
+            # Try to download from S3 first
+            s3_key = "features/features.csv"
+            local_features = "/tmp/features.csv"
+            s3_client.download_file(S3_BUCKET_FEATURES, s3_key, local_features)
+            df = pd.read_csv(local_features, index_col=0, parse_dates=True)
+            logger.info(f"Loaded features from s3://{S3_BUCKET_FEATURES}/{s3_key}")
+        except Exception as e:
+            logger.warning(f"Failed to load from S3: {str(e)}. Trying local file...")
+            df = pd.read_csv(features_path, index_col=0, parse_dates=True)
+    else:
+        df = pd.read_csv(features_path, index_col=0, parse_dates=True)
 
     # Default features if not specified
     if features_list is None:
@@ -89,11 +119,21 @@ def train_model(
     model_file = Path(model_path)
     model_file.parent.mkdir(parents=True, exist_ok=True)
 
-    # Save model
+    # Save model locally
     with open(model_path, "wb") as f:
         pickle.dump(model, f)
 
-    logger.info(f"Model saved to {model_path}")
+    logger.info(f"Model saved locally to {model_path}")
+
+    # Upload model to S3 if enabled
+    if USE_S3 and s3_client:
+        try:
+            s3_key = "models/baseline_model.pkl"
+            s3_client.upload_file(model_path, S3_BUCKET_MODELS, s3_key)
+            logger.info(f"Model uploaded to s3://{S3_BUCKET_MODELS}/{s3_key}")
+        except Exception as e:
+            logger.error(f"Failed to upload model to S3: {str(e)}")
+            # Continue even if S3 upload fails
 
     return {
         "model": model,

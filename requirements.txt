@@ -13,3 +13,4 @@ uvicorn[standard]
 black
 flake8
 dvc[s3]
+boto3
