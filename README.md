@@ -277,7 +277,7 @@ Once running, visit:
 
 ## 7. AWS SageMaker Training
 
-Allowed the model to be trained on AWS SageMaker using Docker images from ECR.
+Allows the model to train as a job on AWS SageMaker using Docker images from ECR.
 
 ```bash
 # 1. Create ECR repo
