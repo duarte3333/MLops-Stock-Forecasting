@@ -1,6 +1,8 @@
 # MLOps Stock Forecasting
 
-A **production-ready MLOps pipeline** for stock price prediction using XGBoost. This project demonstrates the complete machine learning lifecycle — from data ingestion and feature engineering to model training, containerized deployment, and scalable inference serving on Kubernetes.
+A **production-ready MLOps pipeline** for stock price prediction built with **XGBoost**. The project covers the full machine learning lifecycle, from data ingestion and feature engineering through model training, containerized deployment, and scalable inference serving.
+
+The pipeline uses **AWS services** including S3 for data storage, ECR for container images, and SageMaker for model training. Docker ensures consistent environments, **DVC** handles data and model versioning, and **GitHub Actions** automates CI/CD workflows. A **FastAPI** inference service runs on **Kubernetes**, supporting horizontal auto-scaling for reliable, low-latency predictions.
 
 ## Architecture
 
