@@ -2,7 +2,7 @@
 
 A production-ready machine learning pipeline for predicting stock prices using XGBoost. This project demonstrates modern MLOps practices including data versioning with DVC, Docker containerization, CI/CD automation with GitHub Actions, and a FastAPI inference service.
 
-## Tech stack
+## Tech Stack
 - **ML Framework**: XGBoost for gradient boosting
 - **API**: FastAPI for RESTful inference service
 - **Data Versioning**: DVC for data and model tracking
@@ -12,6 +12,8 @@ A production-ready machine learning pipeline for predicting stock prices using X
 - **Registry**: GitHub Container Registry (GHCR) for image distribution
 - **Cloud Training**: AWS SageMaker for scalable model training
 - **Container Registry**: AWS ECR for Docker image storage
+- **Orchestration**: Kubernetes (Kind) for container orchestration
+- **Auto-scaling**: Horizontal Pod Autoscaler (HPA) for dynamic scaling
 
 ## 1. Installation
 
@@ -377,3 +379,151 @@ dvc stage list
 dvc dag
 ```
 
+## 11. Kubernetes Deployment
+
+Deploy the FastAPI inference service on a local Kubernetes cluster using Kind (Kubernetes in Docker).
+
+### Prerequisites
+
+Install Kind (Kubernetes in Docker):
+
+```bash
+# Install Kind
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
+chmod +x ./kind
+mv ./kind ~/.local/bin/kind
+
+# Verify installation
+kind --version
+```
+
+### Quick Start
+
+Use the deployment script for easy management:
+
+```bash
+# Deploy everything (create cluster + build image + deploy)
+./scripts/k8s-deploy.sh all
+
+# Or run steps individually:
+./scripts/k8s-deploy.sh create   # Create Kind cluster
+./scripts/k8s-deploy.sh build    # Build and load Docker image
+./scripts/k8s-deploy.sh deploy   # Deploy manifests
+./scripts/k8s-deploy.sh metrics  # Install metrics-server for HPA
+```
+
+### Manual Deployment
+
+```bash
+# 1. Create the Kind cluster
+kind create cluster --config kind-config.yaml
+
+# 2. Build the inference Docker image
+docker build -f Dockerfile.serve -t stock-predictor:latest .
+
+# 3. Load image into Kind cluster
+kind load docker-image stock-predictor:latest --name mlops-cluster
+
+# 4. Deploy Kubernetes manifests
+kubectl apply -f k8s/
+
+# 5. Wait for deployment
+kubectl rollout status deployment/stock-predictor-api -n mlops-stock
+
+# 6. Install metrics-server (for HPA)
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+```
+
+### Access the API
+
+Once deployed, the API is available at:
+
+```bash
+# Root endpoint
+curl http://localhost:30080/
+
+# Health check
+curl http://localhost:30080/health
+
+# Get prediction
+curl http://localhost:30080/predict
+
+# Swagger docs
+open http://localhost:30080/docs
+```
+
+### Kubernetes Commands
+
+```bash
+# Check cluster status
+kubectl cluster-info
+
+# View pods
+kubectl get pods -n mlops-stock
+
+# View services
+kubectl get services -n mlops-stock
+
+# Check HPA status
+kubectl get hpa -n mlops-stock
+
+# View pod logs
+kubectl logs -n mlops-stock -l app=stock-predictor --tail=50
+
+# Watch pods in real-time
+kubectl get pods -n mlops-stock -w
+
+# Get inside a pod
+kubectl exec -it <pod-name> -n mlops-stock -- /bin/bash
+```
+
+### Manifest Files
+
+| File | Description |
+|------|-------------|
+| `k8s/namespace.yaml` | Creates isolated `mlops-stock` namespace |
+| `k8s/deployment.yaml` | Runs 2 FastAPI replicas with health checks |
+| `k8s/service.yaml` | Exposes API on NodePort 30080 |
+| `k8s/hpa.yaml` | Auto-scales pods (2-10) based on CPU/memory |
+| `k8s/ingress.yaml` | Optional HTTP routing configuration |
+| `kind-config.yaml` | Kind cluster configuration |
+
+### Cleanup
+
+```bash
+# Delete deployment (keep cluster)
+kubectl delete -f k8s/
+
+# Delete entire cluster
+kind delete cluster --name mlops-cluster
+
+# Or use the script
+./scripts/k8s-deploy.sh delete         # Delete resources
+./scripts/k8s-deploy.sh delete-cluster # Delete cluster
+```
+
+1. curl http://localhost:30080/predict
+         │
+         ▼
+2. Docker port mapping (kind-config.yaml)
+   hostPort:30080 → containerPort:30080
+         │
+         ▼
+3. Node receives on NodePort 30080
+   kube-proxy intercepts
+         │
+         ▼
+4. iptables DNAT rule
+   Destination: ServiceClusterIP:80
+   Rewrite to: PodIP:8000 (randomly selected)
+         │
+         ▼
+5. Network packet routed to Pod
+   (via CNI - kindnet in this case)
+         │
+         ▼
+6. Pod receives on port 8000
+   Uvicorn → FastAPI → XGBoost predict()
+         │
+         ▼
+7. Response: {"prediction": 60.44}

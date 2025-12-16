@@ -1,0 +1,39 @@
+# Ingress: HTTP routing and SSL termination (optional)
+# Provides a single entry point for external traffic
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stock-predictor-ingress
+  namespace: mlops-stock
+  labels:
+    app: stock-predictor
+  annotations:
+    # Nginx ingress controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+spec:
+  ingressClassName: nginx
+  rules:
+    # Route all traffic to our service
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: stock-predictor-service
+                port:
+                  number: 80
+    # Optional: Use a custom hostname
+    # - host: stock-predictor.local
+    #   http:
+    #     paths:
+    #       - path: /
+    #         pathType: Prefix
+    #         backend:
+    #           service:
+    #             name: stock-predictor-service
+    #             port:
+    #               number: 80
+

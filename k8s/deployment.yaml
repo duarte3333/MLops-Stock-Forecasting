@@ -1,0 +1,72 @@
+# Deployment: Manages the FastAPI pods
+# Ensures desired number of replicas are always running
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stock-predictor-api
+  namespace: mlops-stock
+  labels:
+    app: stock-predictor
+    component: api
+spec:
+  replicas: 2  # Start with 2 replicas for high availability
+  selector:
+    matchLabels:
+      app: stock-predictor
+      component: api
+  template:
+    metadata:
+      labels:
+        app: stock-predictor
+        component: api
+    spec:
+      containers:
+        - name: fastapi
+          image: stock-predictor:latest
+          imagePullPolicy: IfNotPresent  # Use local image (Kind)
+          ports:
+            - containerPort: 8000
+              name: http
+          # Resource limits - important for HPA and cluster stability
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"      # 0.1 CPU cores
+            limits:
+              memory: "512Mi"
+              cpu: "500m"      # 0.5 CPU cores
+          # Liveness probe: Is the container alive?
+          # If this fails, K8s restarts the container
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # Readiness probe: Is the container ready to receive traffic?
+          # If this fails, K8s removes pod from service endpoints
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # Environment variables
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: LOG_LEVEL
+              value: "INFO"
+      # Graceful shutdown
+      terminationGracePeriodSeconds: 30
+  # Rolling update strategy - zero downtime deployments
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Can have 1 extra pod during update
+      maxUnavailable: 0  # Always keep all pods available
+

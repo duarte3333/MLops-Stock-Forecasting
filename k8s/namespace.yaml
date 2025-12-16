@@ -1,0 +1,10 @@
+# Namespace: Isolated environment for our ML application
+# Namespaces help organize resources and apply policies
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mlops-stock
+  labels:
+    app: stock-predictor
+    environment: development
+

@@ -1,0 +1,43 @@
+# Service: Stable network endpoint for accessing pods
+# Provides load balancing and service discovery
+apiVersion: v1
+kind: Service
+metadata:
+  name: stock-predictor-service
+  namespace: mlops-stock
+  labels:
+    app: stock-predictor
+    component: api
+spec:
+  type: NodePort  # Expose on each node's IP (good for local dev with Kind)
+  selector:
+    app: stock-predictor
+    component: api
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80          # Service port (internal)
+      targetPort: 8000  # Container port
+      nodePort: 30080   # External port (30000-32767 range)
+---
+# ClusterIP Service (for internal communication)
+# Use this if you have other services that need to talk to the API
+apiVersion: v1
+kind: Service
+metadata:
+  name: stock-predictor-internal
+  namespace: mlops-stock
+  labels:
+    app: stock-predictor
+    component: api
+spec:
+  type: ClusterIP
+  selector:
+    app: stock-predictor
+    component: api
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
+

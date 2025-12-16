@@ -1,0 +1,48 @@
+# Dockerfile for FastAPI Inference Service
+# Optimized for production ML serving
+
+FROM python:3.10-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv for fast dependency resolution
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Copy requirements first (for better Docker layer caching)
+COPY requirements.txt .
+
+# Install Python dependencies using uv
+RUN uv pip install --system --no-cache -r requirements.txt
+
+# Copy only the necessary code for serving
+COPY mlops_stock/ ./mlops_stock/
+
+# Copy the trained model and data (these will be mounted in production)
+COPY models/ ./models/
+COPY data/processed/ ./data/processed/
+
+# Set Python path
+ENV PYTHONPATH=/app
+
+# Create non-root user for security
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
+# Expose the port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run the FastAPI server with uvicorn
+CMD ["python", "-m", "uvicorn", "mlops_stock.serve.app:app", "--host", "0.0.0.0", "--port", "8000"]
+

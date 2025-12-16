@@ -1,0 +1,56 @@
+# Horizontal Pod Autoscaler: Automatically scales pods based on metrics
+# This ensures your service can handle varying load
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: stock-predictor-hpa
+  namespace: mlops-stock
+  labels:
+    app: stock-predictor
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: stock-predictor-api
+  
+  # Scaling boundaries
+  minReplicas: 2   # Never go below 2 pods (high availability)
+  maxReplicas: 10  # Never exceed 10 pods (cost control)
+  
+  # Scaling metrics
+  metrics:
+    # Scale based on CPU usage
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70  # Scale up when CPU > 70%
+    
+    # Scale based on Memory usage
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80  # Scale up when Memory > 80%
+  
+  # Scaling behavior - controls how fast scaling happens
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Wait 5 min before scaling down
+      policies:
+        - type: Percent
+          value: 50          # Scale down max 50% at a time
+          periodSeconds: 60  # Every 60 seconds
+    scaleUp:
+      stabilizationWindowSeconds: 0  # Scale up immediately
+      policies:
+        - type: Percent
+          value: 100         # Can double pods
+          periodSeconds: 15  # Every 15 seconds
+        - type: Pods
+          value: 4           # Or add up to 4 pods
+          periodSeconds: 15
+      selectPolicy: Max      # Use whichever adds more pods
+
