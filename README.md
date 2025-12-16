@@ -2,6 +2,13 @@
 
 A production-ready machine learning pipeline for predicting stock prices using XGBoost. This project demonstrates modern MLOps practices including data versioning with DVC, Docker containerization, CI/CD automation with GitHub Actions, and a FastAPI inference service.
 
+## Architecture
+
+![MLOps Architecture](docs/MLOps_final_project_cropped-1.png)
+
+*End-to-end MLOps pipeline with CI/CD automation via GitHub Actions, cloud training on AWS SageMaker, data versioning with DVC, and scalable model serving on Kubernetes with auto-scaling.*
+
+---
 ## Tech Stack
 - **ML Framework**: XGBoost for gradient boosting
 - **API**: FastAPI for RESTful inference service
