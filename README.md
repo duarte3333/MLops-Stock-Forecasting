@@ -1,6 +1,6 @@
 # MLOps Stock Forecasting
 
-A production-ready machine learning pipeline for predicting stock prices using XGBoost. This project demonstrates modern MLOps practices including data versioning with DVC, Docker containerization, CI/CD automation with GitHub Actions, and a FastAPI inference service.
+A **production-ready MLOps pipeline** for stock price prediction using XGBoost. This project demonstrates the complete machine learning lifecycle — from data ingestion and feature engineering to model training, containerized deployment, and scalable inference serving on Kubernetes.
 
 ## Architecture
 
